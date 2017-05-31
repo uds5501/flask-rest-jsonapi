@@ -4,6 +4,8 @@ import inspect
 import json
 from copy import copy
 from six import with_metaclass
+from datetime import datetime
+import os
 
 from werkzeug.wrappers import Response
 from flask import request, url_for, make_response, current_app
@@ -14,7 +16,7 @@ from marshmallow import ValidationError
 from flask_rest_jsonapi.errors import jsonapi_errors
 from flask_rest_jsonapi.querystring import QueryStringManager as QSManager
 from flask_rest_jsonapi.pagination import add_pagination_links
-from flask_rest_jsonapi.exceptions import InvalidType, BadRequest, JsonApiException, RelationNotFound
+from flask_rest_jsonapi.exceptions import InvalidType, BadRequest, JsonApiException, RelationNotFound, ObjectNotFound
 from flask_rest_jsonapi.decorators import check_headers, check_method_requirements
 from flask_rest_jsonapi.schema import compute_schema, get_relationships, get_model_field
 from flask_rest_jsonapi.data_layers.base import BaseDataLayer
@@ -195,9 +197,13 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
         """Get object details
         """
         self.before_get(args, kwargs)
+        if request.args.get('get_trashed') == 'true':
+            obj = self._data_layer.get_object(kwargs, get_trashed=True)
+        else:
+            obj = self._data_layer.get_object(kwargs)
 
-        obj = self._data_layer.get_object(kwargs)
-
+        if obj is None:
+            raise ObjectNotFound({'pointer': ''}, 'Object Not Found')
         qs = QSManager(request.args, self.schema)
 
         schema = compute_schema(self.schema,
@@ -253,7 +259,13 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
         if json_data['data']['id'] != str(kwargs[self.data_layer.get('url_field', 'id')]):
             raise BadRequest('/data/id', 'Value of id does not match the resource identifier in url')
 
-        obj = self._data_layer.get_object(kwargs)
+        if request.args.get('get_trashed') == 'true':
+            obj = self._data_layer.get_object(kwargs, get_trashed=True)
+        else:
+            obj = self._data_layer.get_object(kwargs)
+
+        if obj is None:
+            raise ObjectNotFound({'pointer': ''}, 'Object Not Found')
         self._data_layer.update_object(obj, data, kwargs)
 
         result = schema.dump(obj).data
@@ -266,9 +278,14 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
         """Delete an object
         """
         self.before_delete(args, kwargs)
-
-        obj = self._data_layer.get_object(kwargs)
-        self._data_layer.delete_object(obj, kwargs)
+        obj = self._data_layer.get_object(kwargs, get_trashed=(request.args.get('permanent') == 'true'))
+        if obj is None:
+            raise ObjectNotFound({'pointer': ''}, 'Object Not Found')
+        if 'deleted_at' not in self.schema._declared_fields or request.args.get('permanent') == 'true' or os.environ.get('SOFT_DELETE', 'true') == 'false':
+            self._data_layer.delete_object(obj, kwargs)
+        else:
+            data = {'deleted_at': str(datetime.now())}
+            self._data_layer.update_object(obj, data, kwargs)
 
         result = {'meta': {'message': 'Object successfully deleted'}}
         self.after_delete(result)

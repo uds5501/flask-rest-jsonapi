@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import os
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.collections import InstrumentedList
-from sqlalchemy.sql.expression import desc, asc, text
 from sqlalchemy.inspection import inspect
-
+from flask import request
 from flask_rest_jsonapi.constants import DEFAULT_PAGE_SIZE
 from flask_rest_jsonapi.data_layers.base import BaseDataLayer
 from flask_rest_jsonapi.exceptions import RelationNotFound, RelatedObjectNotFound, JsonApiException,\
@@ -49,7 +49,7 @@ class SqlalchemyDataLayer(BaseDataLayer):
 
         return obj
 
-    def get_object(self, view_kwargs):
+    def get_object(self, view_kwargs, get_trashed=False):
         """Retrieve an object through sqlalchemy
 
         :params dict view_kwargs: kwargs from the resource view
@@ -65,9 +65,11 @@ class SqlalchemyDataLayer(BaseDataLayer):
 
         url_field = getattr(self, 'url_field', 'id')
         filter_value = view_kwargs[url_field]
-
         try:
-            obj = self.session.query(self.model).filter(filter_field == filter_value).one()
+            if 'deleted_at' not in self.resource.schema._declared_fields or get_trashed or os.environ.get('SOFT_DELETE', 'true') == 'false':
+                obj = self.session.query(self.model).filter(filter_field == filter_value).one()
+            else:
+                obj = self.session.query(self.model).filter(filter_field == filter_value).filter_by(deleted_at=None).one()
         except NoResultFound:
             obj = None
 
@@ -83,8 +85,10 @@ class SqlalchemyDataLayer(BaseDataLayer):
         :return tuple: the number of object and the list of objects
         """
         self.before_get_collection(qs, view_kwargs)
-
-        query = self.query(view_kwargs)
+        if 'deleted_at' not in self.resource.schema._declared_fields or request.args.get('get_trashed') == 'true' or os.environ.get('SOFT_DELETE', 'true') == 'false':
+            query = self.query(view_kwargs)
+        else:
+            query = self.query(view_kwargs).filter_by(deleted_at=None)
 
         if qs.filters:
             query = self.filter_query(query, qs.filters, self.model)
