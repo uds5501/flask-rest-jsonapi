@@ -5,7 +5,6 @@ import json
 from copy import copy
 from six import with_metaclass
 from datetime import datetime
-import os
 
 from werkzeug.wrappers import Response
 from flask import request, url_for, make_response, current_app
@@ -281,7 +280,7 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
         obj = self._data_layer.get_object(kwargs, get_trashed=(request.args.get('permanent') == 'true'))
         if obj is None:
             raise ObjectNotFound({'pointer': ''}, 'Object Not Found')
-        if 'deleted_at' not in self.schema._declared_fields or request.args.get('permanent') == 'true' or os.environ.get('SOFT_DELETE', 'true') == 'false':
+        if 'deleted_at' not in self.schema._declared_fields or request.args.get('permanent') == 'true' or current_app.config['SOFT_DELETE'] is False:
             self._data_layer.delete_object(obj, kwargs)
         else:
             data = {'deleted_at': str(datetime.now())}

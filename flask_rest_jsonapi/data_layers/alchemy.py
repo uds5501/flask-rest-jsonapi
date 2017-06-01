@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import os
+from flask import current_app
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.collections import InstrumentedList
 from sqlalchemy.inspection import inspect
@@ -66,7 +66,7 @@ class SqlalchemyDataLayer(BaseDataLayer):
         url_field = getattr(self, 'url_field', 'id')
         filter_value = view_kwargs[url_field]
         try:
-            if 'deleted_at' not in self.resource.schema._declared_fields or get_trashed or os.environ.get('SOFT_DELETE', 'true') == 'false':
+            if 'deleted_at' not in self.resource.schema._declared_fields or get_trashed or current_app.config['SOFT_DELETE'] is False:
                 obj = self.session.query(self.model).filter(filter_field == filter_value).one()
             else:
                 obj = self.session.query(self.model).filter(filter_field == filter_value).filter_by(deleted_at=None).one()
@@ -85,7 +85,7 @@ class SqlalchemyDataLayer(BaseDataLayer):
         :return tuple: the number of object and the list of objects
         """
         self.before_get_collection(qs, view_kwargs)
-        if 'deleted_at' not in self.resource.schema._declared_fields or request.args.get('get_trashed') == 'true' or os.environ.get('SOFT_DELETE', 'true') == 'false':
+        if 'deleted_at' not in self.resource.schema._declared_fields or request.args.get('get_trashed') == 'true' or current_app.config['SOFT_DELETE'] is False:
             query = self.query(view_kwargs)
         else:
             query = self.query(view_kwargs).filter_by(deleted_at=None)
