@@ -130,8 +130,7 @@ class Api(object):
 
             @wraps(view)
             def decorated(*view_args, **view_kwargs):
-                self.check_permissions(view, view_args, view_kwargs, *args, **kwargs)
-                return view(*view_args, **view_kwargs)
+                return self.check_permissions(view, view_args, view_kwargs, *args, **kwargs)
             decorated._has_permissions_decorator = True
             return decorated
         return wrapper
