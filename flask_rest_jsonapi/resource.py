@@ -143,8 +143,6 @@ class ResourceList(with_metaclass(ResourceMeta, Resource)):
     def post(self, *args, **kwargs):
         """Create an object
         """
-        self.before_post(args, kwargs)
-
         json_data = request.get_json()
 
         qs = QSManager(request.args, self.schema)
@@ -175,6 +173,8 @@ class ResourceList(with_metaclass(ResourceMeta, Resource)):
                 error['title'] = "Validation error"
             return errors, 422
 
+        self.before_post(args, kwargs, data=data)
+
         obj = self._data_layer.create_object(data, kwargs)
 
         result = schema.dump(obj).data
@@ -187,7 +187,7 @@ class ResourceList(with_metaclass(ResourceMeta, Resource)):
     def after_get(self, result):
         pass
 
-    def before_post(self, args, kwargs):
+    def before_post(self, args, kwargs, data=None):
         pass
 
     def after_post(self, result):
@@ -224,8 +224,6 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
     def patch(self, *args, **kwargs):
         """Update an object
         """
-        self.before_patch(args, kwargs)
-
         json_data = request.get_json()
 
         qs = QSManager(request.args, self.schema)
@@ -263,6 +261,8 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
         if json_data['data']['id'] != str(kwargs[self.data_layer.get('url_field', 'id')]):
             raise BadRequest('/data/id', 'Value of id does not match the resource identifier in url')
 
+        self.before_patch(args, kwargs, data=data)
+
         if request.args.get('get_trashed') == 'true':
             obj = self._data_layer.get_object(kwargs, get_trashed=True)
         else:
@@ -270,6 +270,7 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
 
         if obj is None:
             raise ObjectNotFound({'pointer': ''}, 'Object Not Found')
+      
         self._data_layer.update_object(obj, data, kwargs)
 
         result = schema.dump(obj).data
@@ -301,7 +302,7 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
     def after_get(self, result):
         pass
 
-    def before_patch(self, args, kwargs):
+    def before_patch(self, args, kwargs, data=None):
         pass
 
     def after_patch(self, result):
@@ -356,8 +357,6 @@ class ResourceRelationship(with_metaclass(ResourceMeta, Resource)):
     def post(self, *args, **kwargs):
         """Add / create relationship(s)
         """
-        self.before_post(args, kwargs)
-
         json_data = request.get_json()
 
         relationship_field, model_relationship_field, related_type_, related_id_field = self._get_relationship_data()
@@ -379,6 +378,8 @@ class ResourceRelationship(with_metaclass(ResourceMeta, Resource)):
                     raise BadRequest('/data/id', 'Missing id in "data" node')
                 if obj['type'] != related_type_:
                     raise InvalidType('/data/type', 'The type provided does not match the resource type')
+
+        self.before_post(args, kwargs, json_data=json_data)
 
         obj_, updated = self._data_layer.create_relationship(json_data,
                                                              model_relationship_field,
@@ -404,8 +405,6 @@ class ResourceRelationship(with_metaclass(ResourceMeta, Resource)):
     def patch(self, *args, **kwargs):
         """Update a relationship
         """
-        self.before_patch(args, kwargs)
-
         json_data = request.get_json()
 
         relationship_field, model_relationship_field, related_type_, related_id_field = self._get_relationship_data()
@@ -427,6 +426,8 @@ class ResourceRelationship(with_metaclass(ResourceMeta, Resource)):
                     raise BadRequest('/data/id', 'Missing id in "data" node')
                 if obj['type'] != related_type_:
                     raise InvalidType('/data/type', 'The type provided does not match the resource type')
+
+        self.before_patch(args, kwargs, json_data=json_data)
 
         obj_, updated = self._data_layer.update_relationship(json_data,
                                                              model_relationship_field,
@@ -452,8 +453,6 @@ class ResourceRelationship(with_metaclass(ResourceMeta, Resource)):
     def delete(self, *args, **kwargs):
         """Delete relationship(s)
         """
-        self.before_delete(args, kwargs)
-
         json_data = request.get_json()
 
         relationship_field, model_relationship_field, related_type_, related_id_field = self._get_relationship_data()
@@ -475,6 +474,8 @@ class ResourceRelationship(with_metaclass(ResourceMeta, Resource)):
                     raise BadRequest('/data/id', 'Missing id in "data" node')
                 if obj['type'] != related_type_:
                     raise InvalidType('/data/type', 'The type provided does not match the resource type')
+
+        self.before_delete(args, kwargs, json_data=json_data)
 
         obj_, updated = self._data_layer.delete_relationship(json_data,
                                                              model_relationship_field,
@@ -515,19 +516,19 @@ class ResourceRelationship(with_metaclass(ResourceMeta, Resource)):
     def after_get(self, result):
         pass
 
-    def before_post(self, args, kwargs):
+    def before_post(self, args, kwargs, json_data=None):
         pass
 
     def after_post(self, result):
         pass
 
-    def before_patch(self, args, kwargs):
+    def before_patch(self, args, kwargs, json_data=None):
         pass
 
     def after_patch(self, result):
         pass
 
-    def before_delete(self, args, kwargs):
+    def before_delete(self, args, kwargs, json_data=None):
         pass
 
     def after_delete(self, result):
