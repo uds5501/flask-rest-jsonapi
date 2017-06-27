@@ -147,7 +147,7 @@ class QueryStringManager(object):
         if self.qs.get('sort'):
             sorting_results = []
             for sort_field in self.qs['sort'].split(','):
-                field = sort_field.replace('-', '')
+                field = sort_field[0].replace('-', '') + sort_field[1:].replace('-', '_')
                 if field not in self.schema._declared_fields:
                     raise InvalidSort("{} has no attribute {}".format(self.schema.__name__, field))
                 if field in get_relationships(self.schema).values():

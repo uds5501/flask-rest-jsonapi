@@ -270,7 +270,7 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
 
         if obj is None:
             raise ObjectNotFound({'pointer': ''}, 'Object Not Found')
-      
+
         self._data_layer.update_object(obj, data, kwargs)
 
         result = schema.dump(obj).data
