@@ -88,7 +88,7 @@ class SqlalchemyDataLayer(BaseDataLayer):
         if 'deleted_at' not in self.resource.schema._declared_fields or request.args.get('get_trashed') == 'true' or current_app.config['SOFT_DELETE'] is False:
             query = self.query(view_kwargs)
         else:
-            query = self.query(view_kwargs).filter_by(deleted_at=None)
+            query = self.query(view_kwargs).filter(self.model.deleted_at == None)
 
         if qs.filters:
             query = self.filter_query(query, qs.filters, self.model)
