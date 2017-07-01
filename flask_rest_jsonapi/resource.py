@@ -76,7 +76,10 @@ class Resource(MethodView):
         except Exception as e:
             if current_app.config['DEBUG'] is True:
                 raise e
-            exc = JsonApiException('', str(e))
+            if current_app.config['PROPOGATE_ERROR'] is True:
+                exc = JsonApiException({'pointer': ''}, str(e))
+            else:
+                exc = JsonApiException({'pointer': ''}, 'Unknown error')
             return make_response(json.dumps(jsonapi_errors([exc.to_dict()])),
                                  exc.status,
                                  headers)
