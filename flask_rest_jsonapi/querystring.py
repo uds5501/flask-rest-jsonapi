@@ -4,6 +4,7 @@ import json
 
 from flask_rest_jsonapi.exceptions import BadRequest, InvalidFilters, InvalidSort
 from flask_rest_jsonapi.schema import get_model_field, get_relationships
+from flask import current_app
 
 
 class QueryStringManager(object):
@@ -126,8 +127,10 @@ class QueryStringManager(object):
         result = self._get_key_values('fields')
         for key, value in result.items():
             if not isinstance(value, list):
-                result[key] = [value]
-
+                if current_app.config['DASHERIZE_API'] is True:
+                    result[key] = [value.replace('-', '_')]
+                else:
+                    result[key] = [value]
         return result
 
     @property
@@ -147,7 +150,10 @@ class QueryStringManager(object):
         if self.qs.get('sort'):
             sorting_results = []
             for sort_field in self.qs['sort'].split(','):
-                field = sort_field[0].replace('-', '') + sort_field[1:].replace('-', '_')
+                if current_app.config['DASHERIZE_API'] is True:
+                    field = sort_field[0].replace('-', '') + sort_field[1:].replace('-', '_')
+                else:
+                    field = sort_field[0].replace('-', '') + sort_field[1:]
                 if field not in self.schema._declared_fields:
                     raise InvalidSort("{} has no attribute {}".format(self.schema.__name__, field))
                 if field in get_relationships(self.schema).values():
@@ -166,4 +172,11 @@ class QueryStringManager(object):
         :return list: a list of include information
         """
         include_param = self.qs.get('include')
-        return include_param.split(',') if include_param else []
+        if include_param:
+            param_results = []
+            for param in include_param.split(','):
+                if current_app.config['DASHERIZE_API'] is True:
+                    param = param.replace('-', '_')
+                param_results.append(param)
+            return param_results
+        return []

@@ -23,10 +23,6 @@ from flask_rest_jsonapi.data_layers.base import BaseDataLayer
 from flask_rest_jsonapi.data_layers.alchemy import SqlalchemyDataLayer
 
 
-def hyphenize(text):
-    return text.replace('-', '_')
-
-
 class ResourceMeta(MethodViewType):
 
     def __new__(cls, name, bases, d):
@@ -502,7 +498,8 @@ class ResourceRelationship(with_metaclass(ResourceMeta, Resource)):
         """Get useful data for relationship management
         """
         relationship_field = request.path.split('/')[-1]
-        relationship_field = hyphenize(relationship_field)
+        if current_app.config['DASHERIZE_API'] is True:
+            relationship_field = relationship_field.replace('-', '_')
 
         if relationship_field not in get_relationships(self.schema).values():
             raise RelationNotFound('', "{} has no attribute {}".format(self.schema.__name__, relationship_field))

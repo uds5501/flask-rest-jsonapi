@@ -2,6 +2,7 @@
 
 from sqlalchemy import and_, or_, not_
 
+from flask import current_app
 from flask_rest_jsonapi.exceptions import InvalidFilters
 from flask_rest_jsonapi.schema import get_relationships, get_model_field
 
@@ -63,6 +64,9 @@ class Node(object):
 
         if '__' in name:
             name = name.split('__')[0]
+
+        if current_app.config['DASHERIZE_API'] is True:
+            name = name.replace('-', '_')
 
         if name not in self.schema._declared_fields:
             raise InvalidFilters("{} has no attribute {}".format(self.schema.__name__, name))
