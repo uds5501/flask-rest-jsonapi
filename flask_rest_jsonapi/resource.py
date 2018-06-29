@@ -243,6 +243,13 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
 
         result = schema.dump(obj).data
 
+        # Deleting the soft-deleted entries from the included fields
+        if (not request.args.get('get_trashed') == 'true') and result.get('included', None):
+            for idx, include in enumerate(result.get('included')):
+                # if the deleted-at field is not None, then it has been soft deleted.
+                if include.get('attributes', None).get('deleted-at', None):
+                    del result.get('included')[idx]
+
         self.after_get(result)
         return result
 
