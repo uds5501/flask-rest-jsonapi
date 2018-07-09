@@ -170,7 +170,7 @@ class ResourceList(with_metaclass(ResourceMeta, Resource)):
         """Create an object
         """
         json_data = request.get_json()
-
+        self.decide_schema(json_data)
         qs = QSManager(request.args, self.schema)
 
         schema = compute_schema(self.schema,
@@ -217,6 +217,10 @@ class ResourceList(with_metaclass(ResourceMeta, Resource)):
         pass
 
     def after_post(self, result):
+        pass
+    
+    def decide_schema(self, json_data):
+        """Method to decide schema before post."""
         pass
 
 
