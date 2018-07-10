@@ -262,7 +262,7 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
         """Update an object
         """
         json_data = request.get_json()
-
+        self.decide_schema(json_data)
         qs = QSManager(request.args, self.schema)
         schema_kwargs = getattr(self, 'patch_schema_kwargs', dict())
         schema_kwargs.update({'partial': True})
@@ -349,6 +349,10 @@ class ResourceDetail(with_metaclass(ResourceMeta, Resource)):
         pass
 
     def after_delete(self, result):
+        pass
+
+    def decide_schema(self, json_data):
+        """Method to decide schema before post."""
         pass
 
 
